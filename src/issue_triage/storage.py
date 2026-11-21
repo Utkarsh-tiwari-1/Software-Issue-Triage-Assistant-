@@ -179,7 +179,7 @@ class ChromaIssueIndex:
             assert settings.openai_api_key is not None
             embeddings: Embeddings = OpenAIEmbeddings(
                 model=settings.openai_embedding_model,
-                api_key=settings.openai_api_key.get_secret_value(),
+                openai_api_key=settings.openai_api_key.get_secret_value(),
                 request_timeout=settings.openai_timeout_seconds,
             )
             self.mode = "openai"

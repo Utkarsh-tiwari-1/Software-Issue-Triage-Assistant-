@@ -149,8 +149,10 @@ def get_issue(
 
 
 async def validation_exception_handler(
-    request: Request, exc: RequestValidationError
+    request: Request, exc: Exception
 ) -> JSONResponse:
+    if not isinstance(exc, RequestValidationError):
+        raise exc
     errors = [
         {
             "loc": error.get("loc", []),
