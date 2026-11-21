@@ -2,13 +2,13 @@
 
 import hmac
 import logging
+from typing import Annotated, cast
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import RequestResponseEndpoint
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from issue_triage.schemas import (
     HealthResponse,
@@ -36,11 +36,11 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 
 
 def get_container(request: Request) -> ServiceContainer:
-    return request.app.state.container
+    return cast(ServiceContainer, request.app.state.container)
 
 
 def require_api_key(
-    container: ServiceContainer = Depends(get_container),
+    container: Annotated[ServiceContainer, Depends(get_container)],
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ) -> None:
     configured_key = container.settings.api_key
@@ -52,7 +52,9 @@ def require_api_key(
 
 
 @router.get("/health/live", response_model=HealthResponse, tags=["health"])
-def liveness(container: ServiceContainer = Depends(get_container)) -> HealthResponse:
+def liveness(
+    container: Annotated[ServiceContainer, Depends(get_container)],
+) -> HealthResponse:
     return HealthResponse(
         status="alive",
         version=container.version,
@@ -62,7 +64,9 @@ def liveness(container: ServiceContainer = Depends(get_container)) -> HealthResp
 
 
 @router.get("/health/ready", response_model=HealthResponse, tags=["health"])
-def readiness(container: ServiceContainer = Depends(get_container)) -> HealthResponse:
+def readiness(
+    container: Annotated[ServiceContainer, Depends(get_container)],
+) -> HealthResponse:
     try:
         container.repository.is_ready()
         container.index.is_ready()
@@ -87,7 +91,7 @@ def readiness(container: ServiceContainer = Depends(get_container)) -> HealthRes
 def triage_issue(
     payload: TriageRequest,
     request: Request,
-    container: ServiceContainer = Depends(get_container),
+    container: Annotated[ServiceContainer, Depends(get_container)],
 ) -> TriageResponse:
     try:
         result = container.triage_service.triage(payload)
@@ -116,7 +120,7 @@ def triage_issue(
     dependencies=[Depends(require_api_key)],
 )
 def list_issues(
-    container: ServiceContainer = Depends(get_container),
+    container: Annotated[ServiceContainer, Depends(get_container)],
     category: IssueCategory | None = None,
     priority: IssuePriority | None = None,
     limit: int = Query(default=20, ge=1, le=100),
@@ -136,7 +140,7 @@ def list_issues(
 )
 def get_issue(
     issue_id: UUID,
-    container: ServiceContainer = Depends(get_container),
+    container: Annotated[ServiceContainer, Depends(get_container)],
 ) -> TriageResponse:
     result = container.triage_service.get_issue(issue_id)
     if result is None:

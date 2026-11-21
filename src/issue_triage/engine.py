@@ -61,12 +61,14 @@ class LocalTriageEngine:
         if request.stack_trace:
             steps.insert(
                 0,
-                "Identify the first application frame in the stack trace and verify its input values.",
+                "Identify the first application frame in the stack trace "
+                "and verify its input values.",
             )
         if related:
             steps.insert(
                 0,
-                "Compare this report with the linked related issues and reuse verified reproduction steps.",
+                "Compare this report with the linked related issues and reuse "
+                "verified reproduction steps.",
             )
         return RecommendationPlan(debugging_steps=steps[:8])
 
@@ -75,29 +77,60 @@ class LocalTriageEngine:
         signals: tuple[tuple[IssueCategory, tuple[str, ...]], ...] = (
             (
                 IssueCategory.SECURITY,
-                ("security", "vulnerability", "cve-", "sql injection", "xss", "auth bypass", "data leak"),
+                (
+                    "security",
+                    "vulnerability",
+                    "cve-",
+                    "sql injection",
+                    "xss",
+                    "auth bypass",
+                    "data leak",
+                ),
             ),
-            (IssueCategory.PERFORMANCE, ("slow", "latency", "timeout", "memory leak", "high cpu", "performance")),
-            (IssueCategory.DEPLOYMENT, ("deployment", "deploy", "release", "container start", "health check")),
-            (IssueCategory.BUILD, ("build failed", "compilation", "compiler", "ci pipeline", "dependency conflict")),
-            (IssueCategory.DOCUMENTATION, ("documentation", "docs", "readme", "typo", "incorrect example")),
-            (IssueCategory.USABILITY, ("usability", "interface", "button", "screen reader", "keyboard navigation")),
+            (
+                IssueCategory.PERFORMANCE,
+                ("slow", "latency", "timeout", "memory leak", "high cpu", "performance"),
+            ),
+            (
+                IssueCategory.DEPLOYMENT,
+                ("deployment", "deploy", "release", "container start", "health check"),
+            ),
+            (
+                IssueCategory.BUILD,
+                ("build failed", "compilation", "compiler", "ci pipeline", "dependency conflict"),
+            ),
+            (
+                IssueCategory.DOCUMENTATION,
+                ("documentation", "docs", "readme", "typo", "incorrect example"),
+            ),
+            (
+                IssueCategory.USABILITY,
+                ("usability", "interface", "button", "screen reader", "keyboard navigation"),
+            ),
             (IssueCategory.QUESTION, ("how do i", "how can i", "is it possible", "question")),
         )
         for category, keywords in signals:
             if any(keyword in text for keyword in keywords):
                 return category
-        if any(keyword in text for keyword in ("error", "exception", "crash", "fails", "broken", "bug")):
+        if any(
+            keyword in text
+            for keyword in ("error", "exception", "crash", "fails", "broken", "bug")
+        ):
             return IssueCategory.BUG
         return IssueCategory.UNKNOWN
 
     @staticmethod
     def _priority(text: str, category: IssueCategory) -> IssuePriority:
-        if any(signal in text for signal in ("production is down", "data loss", "actively exploited")):
+        if any(
+            signal in text for signal in ("production is down", "data loss", "actively exploited")
+        ):
             return IssuePriority.P0
         if category == IssueCategory.SECURITY:
             return IssuePriority.P1
-        if any(signal in text for signal in ("all users", "blocks release", "service unavailable", "crash loop")):
+        if any(
+            signal in text
+            for signal in ("all users", "blocks release", "service unavailable", "crash loop")
+        ):
             return IssuePriority.P1
         if category in (IssueCategory.DOCUMENTATION, IssueCategory.QUESTION):
             return IssuePriority.P3
@@ -108,7 +141,10 @@ class LocalTriageEngine:
         if category == IssueCategory.SECURITY:
             return "Security-related language was found; route for prompt security-owner review."
         if priority == IssuePriority.P0:
-            return "The report indicates a broad production outage, data loss, or active exploitation."
+            return (
+                "The report indicates a broad production outage, data loss, "
+                "or active exploitation."
+            )
         if priority == IssuePriority.P1:
             return "The reported impact suggests a release blocker or major user-facing failure."
         if category == IssueCategory.UNKNOWN:
@@ -118,7 +154,15 @@ class LocalTriageEngine:
     @staticmethod
     def _tags(text: str, category: IssueCategory) -> list[str]:
         tags = [category.value]
-        for keyword in ("api", "database", "frontend", "backend", "authentication", "deployment", "ci"):
+        for keyword in (
+            "api",
+            "database",
+            "frontend",
+            "backend",
+            "authentication",
+            "deployment",
+            "ci",
+        ):
             if keyword in text and keyword not in tags:
                 tags.append(keyword)
         return tags[:8]

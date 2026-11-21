@@ -4,7 +4,9 @@ from fastapi.testclient import TestClient
 def test_exact_repeat_routes_to_duplicate_branch(client: TestClient) -> None:
     report = {
         "title": "Database connection pool exhausted",
-        "description": "The API fails with timeout because the database connection pool is exhausted.",
+        "description": (
+            "The API fails with timeout because the database connection pool is exhausted."
+        ),
         "environment": "production",
         "language": "Python",
     }

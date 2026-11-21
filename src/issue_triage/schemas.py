@@ -65,7 +65,9 @@ class TriageAnalysis(BaseModel):
     category: IssueCategory
     priority: IssuePriority
     confidence: float = Field(ge=0, le=1)
-    rationale: Annotated[str, StringConstraints(strip_whitespace=True, min_length=10, max_length=1_500)]
+    rationale: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=10, max_length=1_500)
+    ]
     tags: list[
         Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
     ] = Field(default_factory=list, max_length=8)

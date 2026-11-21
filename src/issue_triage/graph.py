@@ -2,7 +2,7 @@
 
 import json
 from datetime import UTC, datetime
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, TypedDict, cast
 from uuid import UUID, uuid4
 
 from langchain_core.messages import AnyMessage, ToolMessage
@@ -59,7 +59,7 @@ class IssueTriageService:
             {"request": request, "issue_id": uuid4(), "tool_context": []},
             config={"recursion_limit": 12},
         )
-        return final_state["response"]
+        return cast(TriageResponse, final_state["response"])
 
     def get_issue(self, issue_id: UUID) -> TriageResponse | None:
         return self.repository.get(issue_id)
@@ -72,7 +72,9 @@ class IssueTriageService:
         category: IssueCategory | None = None,
         priority: IssuePriority | None = None,
     ) -> tuple[list[TriageResponse], int]:
-        return self.repository.list(limit=limit, offset=offset, category=category, priority=priority)
+        return self.repository.list(
+            limit=limit, offset=offset, category=category, priority=priority
+        )
 
     def _build_graph(self) -> Any:
         @tool
@@ -101,14 +103,19 @@ class IssueTriageService:
             return {"request": request}
 
         def retrieve(state: TriageState) -> dict[str, Any]:
-            matches = self.index.search(state["request"].searchable_text(), self.settings.retrieval_k)
+            matches = self.index.search(
+                state["request"].searchable_text(), self.settings.retrieval_k
+            )
             return {"related_issues": matches}
 
         def should_gather_context(state: TriageState) -> str:
             return "context_agent" if isinstance(self.engine, OpenAITriageEngine) else "analyze"
 
         def gather_context(state: TriageState) -> dict[str, Any]:
-            message = self.engine.gather_context(state["request"], tools)
+            engine = self.engine
+            if not isinstance(engine, OpenAITriageEngine):
+                raise RuntimeError("Context gathering requires the OpenAI engine")
+            message = engine.gather_context(state["request"], tools)
             return {"messages": [message]}
 
         def route_tool_calls(state: TriageState) -> str:

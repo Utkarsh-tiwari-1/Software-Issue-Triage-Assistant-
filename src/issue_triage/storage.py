@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
-from langchain_chroma import Chroma
 
 from issue_triage.config import Settings
 from issue_triage.schemas import (
@@ -39,7 +39,9 @@ class HashEmbeddings(Embeddings):
     def _embed(self, text: str) -> list[float]:
         tokens = re.findall(r"[\w]+", text.casefold())
         features = list(tokens)
-        features.extend(f"{left}_{right}" for left, right in zip(tokens, tokens[1:]))
+        features.extend(
+            f"{left}_{right}" for left, right in zip(tokens, tokens[1:], strict=False)
+        )
         for token in tokens:
             features.extend(token[index : index + 3] for index in range(max(1, len(token) - 2)))
 
